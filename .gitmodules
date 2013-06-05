@@ -1,0 +1,3 @@
+[submodule "src/ttutil"]
+	path = src/ttutil
+	url = https://github.com/mlt/ttutil.git

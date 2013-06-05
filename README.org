@@ -1,0 +1,5 @@
+* About
+
+This is an R package to facilitate work with [[http://www.swap.alterra.nl/][SWAP model]]. Notably it
+provides R bindings to versatile Fortran TTutil library to handle
+configuration files.

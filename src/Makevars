@@ -1,0 +1,16 @@
+# -*- mode: makefile -*-
+#FFLAGS = -g -O2 -mtune=native -fbounds-check
+PKG_LIBS = -Wl,--whole-archive ttutil/standard/libttutil.a -Wl,--no-whole-archive $(FLIBS)
+
+.PHONY: all ttutil
+all: $(SHLIB)
+
+$(SHLIB): main.o ttutil/standard/libttutil.a ttclose.o
+
+ttutil/standard/libttutil.a:
+	@(cd ttutil/standard && $(MAKE) libttutil.a \
+               FC="$(FC)" FFLAGS="$(FFLAGS) $(CPICFLAGS)" AR="$(AR)" RANLIB="$(RANLIB)")
+
+clean:
+	$(RM) main.o ttclose.o
+	(cd ttutil/standard && $(MAKE) clean)
