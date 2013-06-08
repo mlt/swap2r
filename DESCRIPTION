@@ -1,12 +1,12 @@
 Package: swap2r
 Type: Package
-Title: What the package does (short line)
-Version: 1.0
+Title: Interface to SWAP hydrological model
+Version: 0.1
 Date: 2013-06-03
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Author: Mikhail Titov
+Maintainer: Mikhail Titov <mlt@gmx.us>
+Description: Has utility functions to read SWAP output as well as read and
+    write its configuration files via TTutil Fortran library.
+License: GPL-3, also see LICENSE.txt for underlying TTutil
 Collate:
-    'rdinit.R'
     'swap2r.R'

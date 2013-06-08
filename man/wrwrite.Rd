@@ -1,8 +1,8 @@
-\name{wrscha}
-\alias{wrscha}
-\title{wrscha}
+\name{wrwrite}
+\alias{wrwrite}
+\title{wrwrite}
 \usage{
-  wrscha(xname, x)
+  wrwrite(xname, x)
 }
 \arguments{
   \item{xname}{parameter}
@@ -13,7 +13,7 @@
   a \code{list} of formal arguments
 }
 \description{
-  Writes a single character string
+  Universal writes function
 }
 \author{
   Mikhail Titov (\email{mlt@gmx.us})

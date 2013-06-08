@@ -2,7 +2,7 @@
 \alias{rdinit}
 \title{rdinit}
 \usage{
-  rdinit(datfil, iunit = 30, iulog = 40)
+  rdinit(datfil, iunit = 30, iulog = 0)
 }
 \arguments{
   \item{datfil}{name of configuration file to read}
