@@ -3,6 +3,8 @@
 #include <Rinternals.h>
 #include <R_ext/Rdynload.h>
 
+static SEXP ttutil_array = NULL;
+
 /* TODO: Rewrite with .Call */
 void rdinit(int* iunit, int* iulog, char** datfil) {
   F77_CALL(rdinit)(iunit, iulog, datfil[0], strlen(datfil[0]));
@@ -13,68 +15,6 @@ SEXP wrinit(SEXP iunit0, SEXP datfil0) {
   const char* datfil = CHAR(STRING_ELT(datfil0, 0));
   F77_CALL(wrinit)(&iunit, datfil, strlen(datfil));
   return R_NilValue;
-}
-
-/* void rdsrea(char** xname, float* x) { */
-/*   F77_CALL(rdsrea)(xname[0], x, strlen(xname[0])); */
-/* } */
-
-/* TODO: Convert me to .Call */
-void rdsdou(char** xname, double* x) {
-  F77_CALL(rdsdou)(xname[0], x, strlen(xname[0]));
-}
-
-/* void rdscha(char** xname, char** x) { */
-/*   size_t xlen = 255; */
-/*   F77_CALL(rdscha)(xname[0], x[0], strlen(xname[0]), xlen); */
-/*   while (' ' == x[0][--xlen]); */
-/*   x[0][xlen+1] = 0; */
-/* } */
-
-SEXP rdscha(SEXP xname0) {
-  size_t xlen = 255;
-  char x[xlen+1];
-  SEXP ret;
-  const char *xname = CHAR(STRING_ELT(xname0, 0));
-  F77_CALL(rdscha)(xname, x, strlen(xname), xlen);
-  while (' ' == x[--xlen]);
-  x[xlen+1] = 0;
-
-  PROTECT(ret = NEW_CHARACTER(1));
-  SET_STRING_ELT(ret, 0, mkChar(x));
-  UNPROTECT(1);
-  return ret;
-}
-
-/* TODO: remove me */
-/* SEXP rdarea(SEXP xname0) { */
-/*   int ildec = 1024; */
-/*   int ifnd; */
-/*   float x[ildec]; */
-/*   SEXP ret; */
-/*   const char *xname = CHAR(STRING_ELT(xname0, 0)); */
-/*   F77_CALL(rdarea)(xname, x, &ildec, &ifnd, strlen(xname)); */
-
-/*   PROTECT(ret = NEW_NUMERIC(ifnd)); */
-/*   for (int i=0; i<ifnd; i++) */
-/*     REAL(ret)[i] = x[i]; */
-/*   UNPROTECT(1); */
-/*   return ret; */
-/* } */
-
-SEXP rdadou(SEXP xname0) {
-  int ildec = 1024;
-  int ifnd;
-  double x[ildec];
-  SEXP ret;
-  const char *xname = CHAR(STRING_ELT(xname0, 0));
-  F77_CALL(rdadou)(xname, x, &ildec, &ifnd, strlen(xname));
-
-  PROTECT(ret = NEW_NUMERIC(ifnd));
-  for (int i=0; i<ifnd; i++)
-    REAL(ret)[i] = x[i];
-  UNPROTECT(1);
-  return ret;
 }
 
 SEXP rdinlv(SEXP setflag0) {
@@ -130,59 +70,8 @@ SEXP rdinar(SEXP xname0) {
   return ret;
 }
 
-SEXP rdsint(SEXP xname0) {
-  SEXP ret;
-  const char *xname = CHAR(STRING_ELT(xname0, 0));
-  PROTECT(ret = NEW_INTEGER(1));
-  F77_CALL(rdsint)(xname, INTEGER(ret), strlen(xname));
-  UNPROTECT(1);
-  return ret;
-}
-
-/* SEXP rdaint(SEXP xname0) { */
-/*   SEXP ret; */
-/*   const char *xname = CHAR(STRING_ELT(xname0, 0)); */
-/*   PROTECT(ret = NEW_INTEGER(1)); */
-/*   F77_CALL(rdsint)(xname, INTEGER(ret), strlen(xname)); */
-/*   UNPROTECT(1); */
-/*   return ret; */
-/* } */
-
-SEXP rdslog(SEXP xname0) {
-  SEXP ret;
-  const char *xname = CHAR(STRING_ELT(xname0, 0));
-  PROTECT(ret = NEW_LOGICAL(1));
-  F77_CALL(rdslog)(xname, LOGICAL(ret), strlen(xname));
-  UNPROTECT(1);
-  return ret;
-}
-
-SEXP rdstim(SEXP xname0) {
-  SEXP ret;
-  const char *xname = CHAR(STRING_ELT(xname0, 0));
-  PROTECT(ret = NEW_NUMERIC(1));
-  F77_CALL(rdstim)(xname, REAL(ret), strlen(xname));
-  UNPROTECT(1);
-  return ret;
-}
-
-SEXP rdatim(SEXP xname0) {
-  int ildec = 1024;
-  int ifnd;
-  double x[ildec];
-  SEXP ret;
-  const char *xname = CHAR(STRING_ELT(xname0, 0));
-  F77_CALL(rdatim)(xname, x, &ildec, &ifnd, strlen(xname));
-
-  PROTECT(ret = NEW_NUMERIC(ifnd));
-  for (int i=0; i<ifnd; i++)
-    REAL(ret)[i] = x[i];
-  UNPROTECT(1);
-  return ret;
-}
-
 SEXP rdread(SEXP xname0) {
-  SEXP e, ret = R_NilValue;
+  SEXP ret = R_NilValue;
   char cType;
   int isar = 0;
   int no_el = 1;
@@ -199,12 +88,11 @@ SEXP rdread(SEXP xname0) {
   }
   switch (cType) {
   case 'I':
-    /* Rprintf("Allocating integer vector with %d elements\n", no_el); */
     PROTECT(ret = NEW_INTEGER(no_el));
     if (isar) {
       F77_CALL(rdaint)(xname, INTEGER(ret), &no_el, &actual, strlen(xname));
       if (no_el != actual)
-	REprintf("Wrong number of elements read\n");
+	REprintf("%d elements read for %s with %d elements\n", actual, xname, no_el);
     } else
       F77_CALL(rdsint)(xname, INTEGER(ret), strlen(xname));
     break;
@@ -213,7 +101,7 @@ SEXP rdread(SEXP xname0) {
     if (isar) {
       F77_CALL(rdadou)(xname, REAL(ret), &no_el, &actual, strlen(xname));
       if (no_el != actual)
-	REprintf("Wrong number of elements read\n");
+	REprintf("%d elements read for %s with %d elements\n", actual, xname, no_el);
     } else
       F77_CALL(rdsdou)(xname, REAL(ret), strlen(xname));
     break;
@@ -222,7 +110,7 @@ SEXP rdread(SEXP xname0) {
     if (isar) {
       F77_CALL(rdalog)(xname, LOGICAL(ret), &no_el, &actual, strlen(xname));
       if (no_el != actual)
-	REprintf("Wrong number of elements read\n");
+	REprintf("%d elements read for %s with %d elements\n", actual, xname, no_el);
     } else
       F77_CALL(rdslog)(xname, LOGICAL(ret), strlen(xname));
     break;
@@ -231,14 +119,14 @@ SEXP rdread(SEXP xname0) {
     if (isar) {
       F77_CALL(rdacha)(xname, x, &no_el, &actual, strlen(xname), maxlen);
       if (no_el != actual)
-	REprintf("Wrong number of elements read\n");
+	REprintf("%d elements read for %s with %d elements\n", actual, xname, no_el);
     } else
       F77_CALL(rdscha)(xname, x, strlen(xname), maxlen);
 
     for (int i=0; i<no_el; i++) {
       int j=maxlen;
       strncpy(buf, x[i], j);
-      while (' ' == buf[--j]);
+      while (j>0 && ' ' == buf[--j]);
       buf[j+1] = 0;
       SET_STRING_ELT(ret, i, mkChar(buf));
     }
@@ -248,23 +136,22 @@ SEXP rdread(SEXP xname0) {
     if (isar) {
       F77_CALL(rdatim)(xname, REAL(ret), &no_el, &actual, strlen(xname));
       if (no_el != actual)
-	REprintf("Wrong number of elements read\n");
+	REprintf("%d elements read for %s with %d elements\n", actual, xname, no_el);
     } else
       F77_CALL(rdstim)(xname, REAL(ret), strlen(xname));
-    PROTECT(e = allocVector(LANGSXP, 3));
-    SETCAR(e, Rf_install("as.Date"));
-    SETCADR(e, ret); /* e = CDR(e); */
-    SETCADDR(e, ScalarString(mkChar("1899-12-31")));
-    SET_TAG(CDDR(e), install("origin"));
-    ret = R_tryEval(e, NULL, &errorOccurred);
-    UNPROTECT(1);
+    for(int i=0; i<no_el; i++)
+      REAL(ret)[i] -= 25568.d;
+    SET_CLASS(ret, ScalarString(mkChar("Date")));
     break;
   case '-':
-    REprintf("Uknown type was returned by rdindt\n");
-    break;
+    REprintf("rdindt(""%s"") yielded '-'\n", xname);
+    return R_NilValue;
   default:
-    REprintf("Unexpected type was returned by rdindt\n");
+    REprintf("Unexpected type was returned by rdindt for %s\n", xname);
+    return R_NilValue;
   }
+  if (isar && 1 == no_el)
+    setAttrib(ret, ttutil_array, ScalarLogical(1));
   UNPROTECT(1);
   return ret;
 }
@@ -277,10 +164,83 @@ SEXP wrscha(SEXP xname0, SEXP x0) {
   return R_NilValue;
 }
 
+SEXP wrwrite(SEXP xname0, SEXP x0) {
+  SEXP e, attr;
+  int no_el = 1;
+  const char *xname = CHAR(STRING_ELT(xname0, 0));
+  attr = getAttrib(x0, ttutil_array);
+  int is_ar = isLogical(attr) ? asLogical(attr) : 0;
+  no_el = LENGTH(x0);
+  switch (TYPEOF(x0)) {
+  case INTSXP:
+    if (1 == no_el && !is_ar)
+      F77_CALL(wrsint)(xname, INTEGER(x0), strlen(xname));
+    else
+      F77_CALL(wraint)(xname, INTEGER(x0), &no_el, &no_el, strlen(xname));
+    break;
+  case REALSXP:
+    attr = getAttrib(x0, R_ClassSymbol);
+    if (STRSXP == TYPEOF(attr) && 1 <= LENGTH(attr))
+      if (0 == strcmp(CHAR(STRING_ELT(attr, 0)), "Date")) {
+	for (int i=0; i<no_el; i++)
+	  REAL(x0)[i] += 25568.d;
+	if (1 == no_el && !is_ar)
+	  F77_CALL(wrstim)(xname, REAL(x0), strlen(xname));
+	else
+	  F77_CALL(wratim)(xname, REAL(x0), &no_el, &no_el, strlen(xname));
+      } else {
+	REprintf("double with unknown class %s\n", CHAR(STRING_ELT(attr, 0)));
+      }
+    else {
+      if (1 == no_el && !is_ar)
+	F77_CALL(wrsdou)(xname, REAL(x0), strlen(xname));
+      else
+	F77_CALL(wradou)(xname, REAL(x0), &no_el, &no_el, strlen(xname));
+    }
+    break;
+  case LGLSXP:
+    if (1 == no_el && !is_ar)
+      F77_CALL(wrslog)(xname, LOGICAL(x0), strlen(xname));
+    else
+      F77_CALL(wralog)(xname, LOGICAL(x0), &no_el, &no_el, strlen(xname));
+    break;
+  case STRSXP:
+    if (1 == no_el && !is_ar) {
+      const char *x = CHAR(STRING_ELT(x0, 0));
+      F77_CALL(wrscha)(xname, x, strlen(xname), strlen(x));
+    } else {
+      size_t maxlen = 0;
+      for (int i=0; i<no_el; i++)
+	if (strlen(CHAR(STRING_ELT(x0, i))) > maxlen)
+	  maxlen = strlen(CHAR(STRING_ELT(x0, i)));
+      char x[no_el][maxlen];
+      memset(x, ' ', no_el * maxlen);
+
+      for (int i=0; i<no_el; i++) {
+	memcpy(x[i], CHAR(STRING_ELT(x0, i)), strlen(CHAR(STRING_ELT(x0, i))));
+      }
+      F77_CALL(wracha)(xname, x, &no_el, &no_el, strlen(xname), maxlen);
+    }
+    break;
+  case VECSXP:			/* generic lists such as data.frame */
+    attr = getAttrib(x0, R_NamesSymbol);
+    PROTECT(e = allocVector(STRSXP, 1));
+    for (int i=0; i<no_el; i++) {
+      SET_STRING_ELT(e, 0, STRING_ELT(attr, i));
+      wrwrite(e, VECTOR_ELT(x0, i));
+    }
+    UNPROTECT(1);
+    break;
+  default:
+    REprintf("Unexpected type %d of variable %s\n", TYPEOF(x0), xname);
+  }
+  return R_NilValue;
+}
 
 void
 R_init_swap2r(DllInfo *info)
 {
+  ttutil_array = install("ttutil-array");
   /* Register routines,
      allocate resources. */
 }

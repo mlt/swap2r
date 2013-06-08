@@ -1,37 +1,17 @@
-##' Read single double value
-##' @aliases rdsrea
-##' @title rdsdou
-##' @param xname parameter name
-##' @return a double value read
-##' @author Mikhail Titov (\email{mlt@@gmx.us})
-##' @export rdsdou rdsrea
-##' @useDynLib swap2r
-rdsdou <- function(xname) {
-    .C("rdsdou", xname=xname, x=as.double(0))$x
-}
-rdsrea <- rdsdou
-
-##' Read single character value
-##' @title rdscha
-##' @param xname parameter name
-##' @return a string value
+##' Initializes TTUTIL for reading
+##'
+##' Supply FORTRAN file descriptors
+##' @title rdinit
+##' @param datfil name of configuration file to read
+##' @param iunit
+##' @param iulog
+##' @return a \code{list} of formal arguments
 ##' @author Mikhail Titov (\email{mlt@@gmx.us})
 ##' @export
-rdscha <- function(xname) {
-    .Call("rdscha", xname=xname)
+##' @useDynLib swap2r
+rdinit <- function(datfil, iunit=30, iulog=0) {
+  .C("rdinit", iunit=as.integer(iunit), iulog=as.integer(iulog), datfil=datfil)
 }
-
-##' Read array of double values
-##' @aliases rdarea
-##' @title rdadou
-##' @param xname parameter name
-##' @return a double valued vector read
-##' @author Mikhail Titov (\email{mlt@@gmx.us})
-##' @export rdarea rdadou
-rdadou <- function(xname) {
-    .Call("rdadou", xname=xname)
-}
-rdarea <- rdadou
 
 ##' Return list of variables
 ##' @title rdinlv
@@ -74,46 +54,6 @@ rdinar <- function(xname) {
     .Call("rdinar", xname=xname)
 }
 
-##' Reads a single integer
-##' @title rdsint
-##' @param xname Variable name
-##' @return integer
-##' @author Mikhail Titov (\email{mlt@@gmx.us})
-##' @export
-rdsint <- function(xname) {
-    .Call("rdsint", xname=xname)
-}
-
-##' Reads a single logical
-##' @title rdslog
-##' @param xname Variable name
-##' @return logical
-##' @author Mikhail Titov (\email{mlt@@gmx.us})
-##' @export
-rdslog <- function(xname) {
-    .Call("rdslog", xname=xname)
-}
-
-##' Reads a single date/time
-##' @title rdstim
-##' @param xname Variable name
-##' @return POSIXct
-##' @author Mikhail Titov (\email{mlt@@gmx.us})
-##' @export
-rdstim <- function(xname) {
-    as.Date("1899-12-31") + .Call("rdstim", xname=xname)
-}
-
-##' Reads date/time array
-##' @title rdatim
-##' @param xname Variable name
-##' @return POSIXct
-##' @author Mikhail Titov (\email{mlt@@gmx.us})
-##' @export
-rdatim <- function(xname) {
-    as.Date("1899-12-31") + .Call("rdatim", xname=xname)
-}
-
 ##' Universal read function
 ##' @title rdread
 ##' @param xname parameter
@@ -124,6 +64,18 @@ rdread <- function(xname) {
   .Call("rdread", xname=xname)
 }
 
+##' Read all parameters from the file into a list.
+##' @title read.tt
+##' @param fname file name to read data from
+##' @return \code{list} with parameters read.
+##' @author Mikhail Titov (\email{mlt@@gmx.us})
+##' @export
+read.tt <- function(fname) {
+    rdinit(fname, 30)
+    out <- sapply(rdinlv(), rdread)
+    wrclose(30)
+    out
+}
 
 #############################################################
 
@@ -137,7 +89,7 @@ rdread <- function(xname) {
 ##' @author Mikhail Titov (\email{mlt@@gmx.us})
 ##' @export
 wrinit <- function(datfil, iunit=50) {
-  .Call("wrinit", iunit=iunit, datfil=datfil)
+  .Call("wrinit", iunit=as.integer(iunit), datfil=datfil)
 }
 
 ##' Close fortrain unit
@@ -147,16 +99,32 @@ wrinit <- function(datfil, iunit=50) {
 ##' @author Mikhail Titov (\email{mlt@@gmx.us})
 ##' @export
 wrclose <- function(iunit=50) {
-  .Fortran("wrclose", iunit=iunit)
+  .Fortran("wrclose", iunit=as.integer(iunit))
 }
 
-##' Writes a single character string
-##' @title wrscha
+##' Universal writes function
+##' @title wrwrite
 ##' @param xname parameter
 ##' @param x value
 ##' @return a \code{list} of formal arguments
 ##' @author Mikhail Titov (\email{mlt@@gmx.us})
 ##' @export
-wrscha <- function(xname, x) {
-  .Call("wrscha", xname=xname, x=x)
+wrwrite <- function(xname, x) {
+  .Call("wrwrite", xname=xname, x=x)
+}
+
+##' Write list with parameters to a file.
+##'
+##' List will be flattened.
+##' @title write.tt
+##' @param x list with parameters to write
+##' @param fname file name to read data from
+##' @return Nothing
+##' @author Mikhail Titov (\email{mlt@@gmx.us})
+##' @export
+write.tt <- function(x, fname) {
+    wrinit(fname, 60)
+    wrwrite("dummy", x)
+    wrclose(60)
+    NULL
 }
