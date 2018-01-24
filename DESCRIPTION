@@ -8,5 +8,4 @@ Maintainer: Mikhail Titov <mlt@gmx.us>
 Description: Has utility functions to read SWAP output as well as read and
     write its configuration files via TTutil Fortran library.
 License: GPL-3, also see LICENSE.txt for underlying TTutil
-Collate:
-    'swap2r.R'
+RoxygenNote: 6.0.1
